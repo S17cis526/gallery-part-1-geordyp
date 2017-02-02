@@ -13,6 +13,19 @@ var stylesheet = fs.readFileSync('gallery.css');
 
 var imageNames = ['ace.jpg', 'bubble.jpg', 'chess.jpg', 'fern.jpg', 'mobile.jpg'];
 
+function getImageNames(callback) {
+  fs.readdir('images/', function(err, fileNames) {
+    if (err) callback(err, undefined);
+    else callback(false, fileNames);
+  });
+}
+
+function imageNamesToTags(fileNames) {
+  return fileNames.map(function(fileName) {
+    return `<img src="${fileName}" alt="${fileName}">`;
+  });
+}
+
 function serveImage(filename, req, res) {
   fs.readFile('images/' + filename, function(err, body) {
     if (err) {
@@ -26,53 +39,47 @@ function serveImage(filename, req, res) {
   });
 }
 
+function buildGallery(imageTags) {
+  var html =  '<!DOCTYPE html>';
+      html += '<head>';
+      html += '<title>Dynamic Page</title>';
+      html += '<link rel="stylesheet" type="text/css" href="gallery.css">';
+      html += '</head>';
+      html += '<body>';
+        html += '<h1>Gallery</h1>';
+        html += imageNamesToTags(imageTags).join('');
+      html += '</body>';
+
+  return html;
+}
+
+function serveGallery(req, res) {
+  getImageNames(function(err, imageNames) {
+    if (err) {
+      console.error(err);
+      res.statusCode = 500;
+      res.statusMessage = 'Server error';
+      res.end();
+      return;
+    }
+    res.setHeader('Content-Type', 'text/html');
+    res.end(buildGallery(imageNames));
+  })
+}
+
 var server = http.createServer((req, res) => {
 
   switch (req.url) {
+    case "/":
     case "/gallery":
-      var gHtml = imageNames.map(function(fileName) {
-        return '<img src="' + fileName + '">';
-      }).join(' ');
-      var html =  '<!DOCTYPE html>';
-          html += '<head>';
-          html += '<title>Dynamic Page</title>';
-          html += '<link rel="stylesheet" type="text/css" href="gallery.css">';
-          html += '</head>';
-          html += '<body>';
-            html += '<h1>Gallery</h1>';
-            html += gHtml;
-          html += '</body>';
-      res.setHeader("Content-Type", "text/html");
-      res.end(html);
-      break;
-    case "/ace":
-    case "/ace.jpg":
-      serveImage('ace.jpg', req, res);
-      break;
-    case "/bubble":
-    case "/bubble.jpg":
-      serveImage('bubble.jpg', req, res);
-      break;
-    case "/chess":
-    case "/chess.jpg":
-      serveImage('chess.jpg', req, res);
-      break;
-    case "/fern":
-    case "/fern.jpg":
-      serveImage('fern.jpg', req, res);
-      break;
-    case "/mobile":
-    case "/mobile.jpg":
-      serveImage('mobile.jpg', req, res);
+      serveGallery(req, res);
       break;
     case "/gallery.css":
       res.setHeader('Content-Type', 'text/css');
       res.end(stylesheet);
       break;
     default:
-      res.statusCode = 404;
-      res.statusMessage = "Resource not found";
-      res.end("Couldn't find it");
+      serveImage(req.url, req, res);
   }
 
 });
