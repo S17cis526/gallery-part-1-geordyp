@@ -169,8 +169,6 @@ function handleRequest(req, res) {
       res.setHeader('Content-Type', 'text/javascript');
       res.end(script);
       break;
-    case '/jquery.js':
-      res
     default:
       if (staticFiles.isCached(req.url)) {
         staticFiles.serveFile(req.url, req, res);
